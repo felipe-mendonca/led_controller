@@ -70,6 +70,7 @@ void loop() {
   if (eepromValidity.isValid != 'y'){
     captive_portal_loop();
   } else {
+    if(!WiFi.isConnected()) connect_wifi();
     if (!client.connected()) reconnect(); // check if mqtt client is connected
     client.loop();
     FastLED.show();

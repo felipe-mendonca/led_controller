@@ -21,10 +21,11 @@ void start_soft_ap() {
   Serial.print("AP IP address: ");
   Serial.println(WiFi.softAPIP());
 
-   dnsServer.start(DNS_PORT, "*", apIP); // DNS spoofing (Only for HTTP)
+  dnsServer.start(DNS_PORT, "*", apIP); // DNS spoofing (Only for HTTP)
 
   server.on("/", handleWifi);
   server.on("/wifisave", handleWifiSave);
+  server.onNotFound([]() { server.send(511, "text/html", "<html><body>Does this works?</body></html>"); });
   server.begin(); // Web server start
 }
 
@@ -46,66 +47,36 @@ void captive_portal_loop() {
 
 /** Wifi config page handler */
 void handleWifi() {
-  server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-  server.sendHeader("Pragma", "no-cache");
-  server.sendHeader("Expires", "-1");
-  //server.send(200, "text/html", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
-  server.send(200, "text/html", "<html><head></head><body><h1>Wifi config</h1></body></html>");
-
-  // if (server.client().localIP() == apIP) {
-  //   server.sendContent(String("<p>You are connected through the soft AP: ") + softAP_ssid + "</p>");
-  // } else {
-  //   server.sendContent(String("<p>You are connected through the wifi network: ") + wifiLogin.ssid + "</p>");
-  // }
-  // server.sendContent(
-  //   "\r\n<br />"
-  //   "<table><tr><th align='left'>SoftAP config</th></tr>"
-  // );
-  // server.sendContent(String() + "<tr><td>SSID " + String(softAP_ssid) + "</td></tr>");
-  // server.sendContent(String() + "<tr><td>IP " + WiFi.softAPIP().toString() + "</td></tr>");
-  // server.sendContent(
-  //   "</table>"
-  //   "\r\n<br />"
-  //   "<table><tr><th align='left'>WLAN config</th></tr>"
-  // );
-  // server.sendContent(String() + "<tr><td>SSID " + String(wifiLogin.ssid) + "</td></tr>");
-  // server.sendContent(String() + "<tr><td>IP " + WiFi.localIP().toString() + "</td></tr>");
-  // server.sendContent(
-  //   "</table>"
-  //   "\r\n<br />"
-  //   "<table><tr><th align='left'>WLAN list (refresh if any missing)</th></tr>"
-  // );
-  // Serial.println("scan start");
-  // int n = WiFi.scanNetworks();
-  // Serial.println("scan done");
-  // if (n > 0) {
-  //   for (int i = 0; i < n; i++) {
-  //     server.sendContent(String() + "\r\n<tr><td>SSID " + WiFi.SSID(i) + String((WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":" *") + " (" + WiFi.RSSI(i) + ")</td></tr>");
-  //   }
-  // } else {
-  //   server.sendContent(String() + "<tr><td>No WLAN found</td></tr>");
-  // }
-  // server.sendContent(
-  //   "</table>"
-  //   "\r\n<br /><form method='POST' action='wifisave'><h4>Connect to network:</h4>"
-  //   "<input type='text' placeholder='network' name='n'/>"
-  //   "<br /><input type='password' placeholder='password' name='p'/>"
-  //   "<br /><input type='submit' value='Connect/Disconnect'/></form>"
-  //   "<p>You may want to <a href='/'>return to the home page</a>.</p>"
-  //   "</body></html>"
-  // );
-  // server.client().stop(); // Stop is needed because we sent no content length
+  server.send(200, "text/html", "<html><head></head><body><h1>Wifi config</h1>"
+  "<form method='POST' action='wifisave'>"
+  "<h4>Connect to network:</h4>"
+  "<input type='text' placeholder='network' name='ssid'/><br />"
+  "<input type='password' placeholder='password' name='password'/><br />"
+  "<h4>Configure MQTT server:</h4>"
+  "<input type='text' placeholder='broker' name='mqtt_broker'/><br />"
+  "<input type='text' placeholder='username' name='mqtt_username'/><br />"
+  "<input type='text' placeholder='password' name='mqtt_passwrod'/><br />"
+  "<input type='text' placeholder='port' name='mqtt_port'/><br />"
+  "<input type='submit' value='Connect'/></form>"
+  "</body></html>"
+  );
 }
 
 /** Handle the WLAN save form and redirect to WLAN config page again */
 void handleWifiSave() {
   Serial.println("wifi save");
-  server.arg("n").toCharArray(wifiLogin.ssid, sizeof(wifiLogin.ssid) - 1);
-  server.arg("p").toCharArray(wifiLogin.password, sizeof(wifiLogin.password) - 1);
-  server.sendHeader("Location", "wifi", true);
-  server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-  server.sendHeader("Pragma", "no-cache");
-  server.sendHeader("Expires", "-1");
-  server.send ( 302, "text/plain", "");  // Empty content inhibits Content-length header so we have to close the socket ourselves.
-  server.client().stop(); // Stop is needed because we sent no content length
+  // Configure wifi settings
+  server.arg("ssid").toCharArray(wifiLogin.ssid, sizeof(wifiLogin.ssid) - 1);
+  server.arg("password").toCharArray(wifiLogin.password, sizeof(wifiLogin.password) - 1);
+
+  //Configure MQTT settings
+  server.arg("mqtt_broker").toCharArray(mqttConfig.server, sizeof(mqttConfig.server) - 1);
+  server.arg("mqtt_username").toCharArray(mqttConfig.username, sizeof(mqttConfig.username) - 1);
+  server.arg("mqtt_passwrod").toCharArray(mqttConfig.password, sizeof(mqttConfig.password) - 1);
+  mqttConfig.port = server.arg("mqtt_port").toInt();
+
+  save_eeprom();
+  dump();
+
+  server.send ( 200, "text/html", "<html><body>Done!</body></html>");  // Empty content inhibits Content-length header so we have to close the socket ourselves.
 }

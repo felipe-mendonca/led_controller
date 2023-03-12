@@ -81,7 +81,7 @@ void led_control(byte* data, unsigned int length) {
 
   ledAmount = (int)strtol(payload, &nextValue, 16);
 
-Serial.println(ledAmount);
+  Serial.println(ledAmount);
   for (int ledEntryIndex = 0; ledEntryIndex < ledAmount; ledEntryIndex++) {
     ledPosition = (int)strtol(nextValue, &nextValue, 16);
     ledMode = (int)strtol(nextValue, &nextValue, 16);
