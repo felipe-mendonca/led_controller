@@ -74,9 +74,14 @@ void led_control(byte* data, unsigned int length) {
   unsigned int ledPosition = 0;
   unsigned int ledMode = 0;
   unsigned int ledR = 0;
-  unsigned int ledG = 0;;
+  unsigned int ledG = 0;
   unsigned int ledB = 0;
+  CHSV rainbowColor;
 
+  int ledMaxH = 0;
+  int ledStep = 0;
+  int ledUpateFrequency = 0;
+  int from = 0;
   char *nextValue;
 
   ledAmount = (int)strtol(payload, &nextValue, 16);
@@ -85,8 +90,62 @@ void led_control(byte* data, unsigned int length) {
   for (int ledEntryIndex = 0; ledEntryIndex < ledAmount; ledEntryIndex++) {
     ledPosition = (int)strtol(nextValue, &nextValue, 16);
     ledMode = (int)strtol(nextValue, &nextValue, 16);
+    
+    ledsConfig[ledPosition].mode = ledMode;
 
     switch (ledMode) {
+    case 1:
+      ledR = (int)strtol(nextValue, &nextValue, 16);
+      ledG = (int)strtol(nextValue, &nextValue, 16);
+      ledB = (int)strtol(nextValue, &nextValue, 16);
+      
+      rainbowColor.hue = ledR;
+      rainbowColor.saturation = ledG;
+      rainbowColor.value = ledB;
+      hsv2rgb_rainbow(rainbowColor, leds[ledPosition]);
+      break;
+    case 2:
+      //`<h><s><v><max h><step><update frequency>`
+      ledR = (int)strtol(nextValue, &nextValue, 16);
+      ledG = (int)strtol(nextValue, &nextValue, 16);
+      ledB = (int)strtol(nextValue, &nextValue, 16);
+      ledMaxH = (int)strtol(nextValue, &nextValue, 16);
+      ledStep = (int)strtol(nextValue, &nextValue, 16);
+      ledUpateFrequency = (int)strtol(nextValue, &nextValue, 16);
+      
+      rainbowColor.hue = ledR;
+      rainbowColor.saturation = ledG;
+      rainbowColor.value = ledB;
+      hsv2rgb_rainbow(rainbowColor, leds[ledPosition]);
+      ledsConfig[ledPosition].mode = ledMode;
+      ledsConfig[ledPosition].actual = rainbowColor;
+      ledsConfig[ledPosition].counter = 0;
+      ledsConfig[ledPosition].from = ledR;
+      ledsConfig[ledPosition].to = ledMaxH;
+      ledsConfig[ledPosition].step = ledStep;
+      ledsConfig[ledPosition].ticks = ledUpateFrequency;
+      break;
+    case 3:
+      //`<h><s><v><max h><step><update frequency>`
+      ledR = (int)strtol(nextValue, &nextValue, 16);
+      ledG = (int)strtol(nextValue, &nextValue, 16);
+      ledB = (int)strtol(nextValue, &nextValue, 16);
+      ledMaxH = (int)strtol(nextValue, &nextValue, 16);
+      ledStep = (int)strtol(nextValue, &nextValue, 16);
+      ledUpateFrequency = (int)strtol(nextValue, &nextValue, 16);
+      
+      rainbowColor.hue = ledR;
+      rainbowColor.saturation = ledG;
+      rainbowColor.value = ledB;
+      hsv2rgb_rainbow(rainbowColor, leds[ledPosition]);
+      ledsConfig[ledPosition].mode = ledMode;
+      ledsConfig[ledPosition].actual = rainbowColor;
+      ledsConfig[ledPosition].counter = 0;
+      ledsConfig[ledPosition].from = ledB;
+      ledsConfig[ledPosition].to = ledMaxH;
+      ledsConfig[ledPosition].step = ledStep;
+      ledsConfig[ledPosition].ticks = ledUpateFrequency;
+      break;
     case 0: // light always on
     default:
       ledR = (int)strtol(nextValue, &nextValue, 16);

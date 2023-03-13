@@ -1,13 +1,28 @@
+#include <Ticker.h>
+
 #include <EEPROM.h>
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #define FASTLED_ESP8266_D1_PIN_ORDER
 #include <FastLED.h>
+#include <Ticker.h>
 
 /****** Configure the leds *****/
 #define NUM_LEDS 512
 CRGB leds[NUM_LEDS];
+
+typedef struct {
+  byte mode = 0;
+  unsigned int ticks;
+  unsigned int counter;
+  int from;
+  int to;
+  int step;
+  CHSV actual;
+} LedConfig;
+
+LedConfig ledsConfig[NUM_LEDS] = {0};
 
 /******* MQTT Broker Connection Details *******/
 #define MQTT_SERVER_MAX_LENGTH 63
@@ -44,6 +59,10 @@ WiFiClient espClient;
 /**** MQTT Client Initialisation Using WiFi Connection *****/
 PubSubClient client(espClient);
 
+/**** Color control timer ****/
+Ticker colorTicker;
+#define TICK_TIMER_MS 10
+
 /**** Application Initialisation Function******/
 void setup() {
   pinMode(led, OUTPUT); //set up LED
@@ -62,9 +81,8 @@ void setup() {
 
   FastLED.addLeds<NEOPIXEL, 6>(leds, NUM_LEDS);
   FastLED.show();
-  delay(100);
-  FastLED.show();
-  delay(100);
+  
+  colorTicker.attach_ms(TICK_TIMER_MS, color_ticker);
 }
 void loop() {
   if (eepromValidity.isValid != 'y'){
